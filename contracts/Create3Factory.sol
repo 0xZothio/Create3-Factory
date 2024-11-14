@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import {CREATE3} from "./Create3.sol";
 
 /**
@@ -9,11 +9,11 @@ import {CREATE3} from "./Create3.sol";
  * @dev A factory contract for deploying contracts using CREATE3
  * @notice This contract allows deterministic deployment of contracts across all chains
  */
-contract Create3Factory is Ownable {
-    address public admin;
+contract Create3Factory is AccessControl {
+    // Role definitions
+    bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
     
     // Events
-    event AdminChanged(address indexed previousAdmin, address indexed newAdmin);
     event ContractDeployed(
         address indexed deployer,
         bytes32 indexed salt,
@@ -22,34 +22,21 @@ contract Create3Factory is Ownable {
     );
 
     // Errors
-    error NotAdmin(address sender, string message);
     error InvalidAddress(string message);
     error DeploymentError(string message);
     error InvalidCreationCode(string message);
 
     /**
-     * @dev Constructor to initialize the factory with owner and admin
-     * @param _initialOwner Address of the contract owner
-     * @param _admin Address of the admin who can deploy contracts
+     * @dev Constructor to initialize the factory with admin
+     * @param _admin Address that will have admin and deployer roles
      */
-    constructor(
-        address _initialOwner,
-        address _admin
-    ) Ownable(_initialOwner) {
-        _validateAddress(_admin);
-        admin = _admin;
-        emit AdminChanged(address(0), _admin);
-    }
-
-    /**
-     * @dev Sets a new admin address
-     * @param _newAdmin Address of the new admin
-     */
-    function setAdmin(address _newAdmin) external onlyOwner {
-        _validateAddress(_newAdmin);
-        address oldAdmin = admin;
-        admin = _newAdmin;
-        emit AdminChanged(oldAdmin, _newAdmin);
+    constructor(address _admin) {
+        if (_admin == address(0)) {
+            revert InvalidAddress("Zero address not allowed");
+        }
+        
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(DEPLOYER_ROLE, _admin);
     }
 
     /**
@@ -61,7 +48,7 @@ contract Create3Factory is Ownable {
     function create(
         bytes32 _salt,
         bytes calldata _creationCode
-    ) external onlyAdmin returns (address addr) {
+    ) external onlyRole(DEPLOYER_ROLE) returns (address addr) {
         // Validate creation code
         if (_creationCode.length == 0) {
             revert InvalidCreationCode("Creation code cannot be empty");
@@ -90,29 +77,6 @@ contract Create3Factory is Ownable {
      */
     function addressOf(bytes32 _salt) external view returns (address) {
         return CREATE3.getDeployed(_salt);
-    }
-
-    /**
-     * @dev Validates an address is not zero
-     * @param _address The address to validate
-     */
-    function _validateAddress(address _address) internal pure {
-        if (_address == address(0)) {
-            revert InvalidAddress("Zero address not allowed");
-        }
-    }
-
-    /**
-     * @dev Checks if the caller is the admin
-     */
-    modifier onlyAdmin() {
-        if (msg.sender != admin) {
-            revert NotAdmin(
-                msg.sender,
-                "CREATE3 Factory: Only admin can call this function"
-            );
-        }
-        _;
     }
 
     /**
