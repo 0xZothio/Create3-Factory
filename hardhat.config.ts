@@ -39,13 +39,13 @@ const config: HardhatUserConfig = {
     },
     etherscan: {
         apiKey: {
-            polygon: process.env.POLYGON_API_KEY,
-            amoy: process.env.POLYGON_API_KEY,
-            ethereum: process.env.ETHEREUM_API_KEY,
+            polygon: process.env.POLYGON_API_KEY as string,
+            amoy: process.env.POLYGON_API_KEY as string,
+            ethereum: process.env.ETHEREUM_API_KEY as string,
             avalanche: 'not needed',
             fuji: 'not needed',
             bartio: 'not needed',
-            holesky: process.env.HOLESKY_API_KEY
+            holesky: process.env.HOLESKY_API_KEY as string
         },
         customChains: [
             {
