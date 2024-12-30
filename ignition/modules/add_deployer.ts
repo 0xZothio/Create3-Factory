@@ -4,7 +4,7 @@ import Create3_Deployment from './deploy'
 export default buildModule('Add_Deployer', m => {
     const {create3} = m.useModule(Create3_Deployment)
 
-    m.call(create3,'setDeployer',["0xD8b026B8D382F8FeAAC5a6A1567FE19D47cD1691"])
+    m.call(create3,'setDeployer',["0x3604582f56565d7060D73829FfB9EBD579218Dca"])
 
     return { create3 }
 })
