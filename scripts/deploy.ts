@@ -22,43 +22,54 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     console.log("Deploying Create3Factory with account:", await deployer.getAddress());
 
+    // Get nonce
+    const nonce = await ethers.provider.getTransactionCount(deployer.address);
+    console.log("Current nonce:", nonce);
+
     // Deploy Create3Factory
     console.log("\nDeploying Create3Factory...");
     const Create3Factory = await ethers.getContractFactory("Create3Factory");
 
-    // Prepare deployment transaction with specific gas parameters
-    const deployTx = await Create3Factory.getDeployTransaction(deployer.address);
+    // Prepare deployment data
+    const deployTx = {
+      from: deployer.address,
+      nonce: nonce,
+      gasPrice: ethers.parseUnits("30", "gwei"),
+      gasLimit: ethers.parseUnits("3", "million"),
+      data: Create3Factory.bytecode +
+        Create3Factory.interface.encodeDeploy([deployer.address]).slice(2),
+      type: 0, // Legacy transaction
+      chainId: 1088 // Metis chainId
+    };
 
-    // Set explicit gas parameters for networks that need it
-    if (hre.network.name === "metis") {
-      deployTx.gasLimit = ethers.getBigInt("3000000");
-      deployTx.gasPrice = ethers.getBigInt("30000000000");
-    }
+    // Send transaction
+    console.log("Sending deployment transaction...");
+    console.log("Transaction details:", {
+      gasPrice: deployTx.gasPrice.toString(),
+      gasLimit: deployTx.gasLimit.toString(),
+      nonce: deployTx.nonce
+    });
 
-    // Deploy with modified transaction
-    const deploymentTx = await deployer.sendTransaction(deployTx);
-    console.log("Deployment transaction sent:", deploymentTx.hash);
+    const transaction = await deployer.sendTransaction(deployTx);
+    console.log("Transaction hash:", transaction.hash);
 
-    const receipt = await deploymentTx.wait();
+    console.log("Waiting for transaction confirmation...");
+    const receipt = await transaction.wait();
+
     if (!receipt?.contractAddress) {
-      throw new Error("Contract deployment failed - no contract address");
+      throw new Error("Deployment failed - no contract address received");
     }
 
-    const factoryAddress = receipt.contractAddress;
-    console.log("Create3Factory deployed at:", factoryAddress);
+    const contractAddress = receipt.contractAddress;
+    console.log("Create3Factory deployed to:", contractAddress);
 
-    // Connect to deployed contract
-    const create3Factory = Create3Factory.attach(factoryAddress);
-
-    // Verify contract if not on localhost
+    // Verify contract
     if (hre.network.name !== "localhost" && hre.network.name !== "hardhat") {
-      console.log("\nVerifying contract...");
-
-      // Wait a bit before verification to ensure the contract is deployed
+      console.log("\nWaiting before verification...");
       await new Promise(resolve => setTimeout(resolve, 30000));
 
       await verifyContract(
-        factoryAddress,
+        contractAddress,
         "contracts/Create3Factory.sol:Create3Factory",
         [deployer.address]
       );
@@ -66,11 +77,11 @@ async function main() {
 
     console.log("\nDeployment Summary:");
     console.log("Network:", hre.network.name);
-    console.log("Create3Factory:", factoryAddress);
+    console.log("Create3Factory:", contractAddress);
     console.log("Deployer:", await deployer.getAddress());
 
   } catch (error) {
-    console.error("Deployment failed:", error);
+    console.error("\nDeployment failed with error:", error);
     process.exit(1);
   }
 }
