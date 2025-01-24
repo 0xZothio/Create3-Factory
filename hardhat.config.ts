@@ -24,6 +24,11 @@ const config: HardhatUserConfig = {
       url: "https://pacific-rpc.manta.network/http",
       ledgerAccounts: [LEDGER_ADDRESS],
     },
+    avalanche: {
+      chainId: 43114,
+      url: "https://avax-mainnet.g.alchemy.com/v2/" + process.env.ALCHEMY_API_KEY,
+      ledgerAccounts: [LEDGER_ADDRESS],
+    },
     metis: {
       chainId: 1088,
       url:
@@ -108,6 +113,15 @@ const config: HardhatUserConfig = {
         },
       },
       {
+        network: "avalanche",
+        chainId: 43114,
+        urls: {
+          apiURL:
+            "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
+          browserURL: "https://snowtrace.io",
+        },
+      },
+      {
         network: "metis",
         chainId: 1088,
         urls: {
@@ -115,10 +129,10 @@ const config: HardhatUserConfig = {
             "https://api.routescan.io/v2/network/mainnet/evm/1088/etherscan",
           browserURL: "https://explorer.metis.io/",
         },
-      },
+      }
     ],
   },
-  solidity: "0.8.27",
+  solidity: "0.8.23",
 };
 
 export default config;
